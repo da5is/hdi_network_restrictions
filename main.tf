@@ -15,6 +15,22 @@ provider "azurerm" {
   features {}
 }
 
+variable "clusteruser" {
+  type = string
+  default = "clusteradmin"
+}
+variable "sshuser" {
+  type = string
+  default = "sshadmin"
+}
+variable "clusterpassword" {
+  type = string
+  default = "ChangeMe12345"
+}
+variable "sshpassword" {
+  type = string
+  default = "12345ChangeMe"
+}
 resource "random_string" "unique" {
   length  = 8
   special = false
@@ -22,7 +38,7 @@ resource "random_string" "unique" {
 }
 
 resource "azurerm_resource_group" "hdi" {
-  name     = "rg-hdinsight"
+  name     = "terraform"
   location = "eastus"
 }
 
@@ -38,57 +54,6 @@ resource "azurerm_storage_container" "hdi" {
   name                  = "hdinsight"
   storage_account_name  = azurerm_storage_account.hdi.name
   container_access_type = "private"
-}
-
-resource "azurerm_hdinsight_hadoop_cluster" "hdi" {
-  name                = "hdicluster${random_string.unique.result}"
-  resource_group_name = azurerm_resource_group.hdi.name
-  location            = azurerm_resource_group.hdi.location
-  cluster_version     = "3.6"
-  tier                = "Standard"
-
-  component_version {
-    hadoop = "2.7"
-  }
-
-  gateway {
-    enabled  = true
-    username = "acctestusrgw"
-    password = "TerrAform123!"
-  }
-
-  storage_account {
-    storage_container_id = azurerm_storage_container.hdi.id
-    storage_account_key  = azurerm_storage_account.hdi.primary_access_key
-    is_default           = true
-  }
-
-  roles {
-    head_node {
-      vm_size            = "Standard_E2_V3"
-      username           = "acctestusrvm"
-      password           = "AccTestvdSC4daf986!"
-      subnet_id          = azurerm_subnet.hdi.id
-      virtual_network_id = azurerm_virtual_network.hdi.id
-    }
-
-    worker_node {
-      vm_size               = "Standard_E2_V3"
-      username              = "acctestusrvm"
-      password              = "AccTestvdSC4daf986!"
-      target_instance_count = 1
-      subnet_id             = azurerm_subnet.hdi.id
-      virtual_network_id    = azurerm_virtual_network.hdi.id
-    }
-
-    zookeeper_node {
-      vm_size            = "Standard_A2_V2"
-      username           = "acctestusrvm"
-      password           = "AccTestvdSC4daf986!"
-      subnet_id          = azurerm_subnet.hdi.id
-      virtual_network_id = azurerm_virtual_network.hdi.id
-    }
-  }
 }
 
 resource "azurerm_virtual_network" "hdi" {
@@ -199,4 +164,54 @@ resource "azurerm_network_security_rule" "rule-deny-all" {
 resource "azurerm_subnet_network_security_group_association" "hdi" {
   subnet_id                 = azurerm_subnet.hdi.id
   network_security_group_id = azurerm_network_security_group.hdi.id
+}
+resource "azurerm_hdinsight_hadoop_cluster" "hdi" {
+  name                = "hdicluster${random_string.unique.result}"
+  resource_group_name = azurerm_resource_group.hdi.name
+  location            = azurerm_resource_group.hdi.location
+  cluster_version     = "3.6"
+  tier                = "Standard"
+
+  component_version {
+    hadoop = "2.7"
+  }
+
+  gateway {
+    enabled  = true
+    username = var.clusteruser
+    password = var.clusterpassword
+  }
+
+  storage_account {
+    storage_container_id = azurerm_storage_container.hdi.id
+    storage_account_key  = azurerm_storage_account.hdi.primary_access_key
+    is_default           = true
+  }
+
+  roles {
+    head_node {
+      vm_size            = "Standard_E2_V3"
+      username           = var.sshuser
+      password           = var.sshpassword
+      subnet_id          = azurerm_subnet.hdi.id
+      virtual_network_id = azurerm_virtual_network.hdi.id
+    }
+
+    worker_node {
+      vm_size               = "Standard_E2_V3"
+      username              = var.sshuser
+      password              = var.sshpassword
+      target_instance_count = 1
+      subnet_id             = azurerm_subnet.hdi.id
+      virtual_network_id    = azurerm_virtual_network.hdi.id
+    }
+
+    zookeeper_node {
+      vm_size            = "Standard_A2_V2"
+      username           = var.sshuser
+      password           = var.sshpassword
+      subnet_id          = azurerm_subnet.hdi.id
+      virtual_network_id = azurerm_virtual_network.hdi.id
+    }
+  }
 }

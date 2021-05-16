@@ -1,8 +1,14 @@
-param vnetname string = 'vnethdi'
+param location string = resourceGroup().location
+param clusteruser string = 'clusteradmin'
+param sshuser string = 'sshadmin'
+@secure()
+param clusterpassword string = 'ChangeMe12345'
+@secure()
+param sshpassword string = '12345ChangeMe'
 
 resource storage 'Microsoft.Storage/storageAccounts@2021-02-01' = {
   name: 'storhdi${uniqueString(resourceGroup().id)}'
-  location: resourceGroup().location
+  location: location
   kind: 'StorageV2'
   sku: {
     name: 'Standard_LRS'
@@ -11,8 +17,8 @@ resource storage 'Microsoft.Storage/storageAccounts@2021-02-01' = {
 }
 
 resource vnet 'Microsoft.Network/virtualNetworks@2020-11-01' = {
-  name: vnetname
-  location: resourceGroup().location
+  name: 'vnet-hdi'
+  location: location
   properties: {
     addressSpace: {
       addressPrefixes: [
@@ -34,7 +40,7 @@ resource subnet 'Microsoft.Network/virtualNetworks/subnets@2020-11-01' = {
 
 resource nsg 'Microsoft.Network/networkSecurityGroups@2020-11-01' = {
   name: 'hdinsight_security_group'
-  location: resourceGroup().location
+  location: location
   properties: {
     securityRules: [
       {
@@ -129,7 +135,7 @@ resource nsg 'Microsoft.Network/networkSecurityGroups@2020-11-01' = {
 }
 resource cluster 'Microsoft.HDInsight/clusters@2018-06-01-preview' = {
   name: 'hdicluster${uniqueString(resourceGroup().id)}'
-  location: resourceGroup().location
+  location: location
   properties: {
     clusterVersion: '3.6'
     osType: 'Linux'
@@ -139,8 +145,8 @@ resource cluster 'Microsoft.HDInsight/clusters@2018-06-01-preview' = {
       configurations: {
         gateway: {
           'restAuthCredential.isEnabled': true
-          'restAuthCredential.username': 'acctestusrgw'
-          'restAuthCredential.password': 'TerrAform123!'
+          'restAuthCredential.username': clusteruser
+          'restAuthCredential.password': clusterpassword
         }
       }
     }
@@ -164,8 +170,8 @@ resource cluster 'Microsoft.HDInsight/clusters@2018-06-01-preview' = {
           }
           osProfile: {
             linuxOperatingSystemProfile: {
-              username: 'acctestusrvm'
-              password: 'AccTestvdSC4daf986'
+              username: sshuser
+              password: sshpassword
             }
           }
           virtualNetworkProfile: {
@@ -181,8 +187,8 @@ resource cluster 'Microsoft.HDInsight/clusters@2018-06-01-preview' = {
           }
           osProfile: {
             linuxOperatingSystemProfile: {
-              username: 'acctestusrvm'
-              password: 'AccTestvdSC4daf986'
+              username: sshuser
+              password: sshpassword
             }
           }
           virtualNetworkProfile: {
